@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const uri = process.env.MONGODB_URI;
 
-console.log('connecting to', uri);
+console.log('connecting to MongoDB');
 
 mongoose.connect(uri)
     .then(result => {
@@ -13,8 +13,15 @@ mongoose.connect(uri)
     });
 
 const noteSchema = new mongoose.Schema({
-    content: String,
-    date: Date,
+    content: {
+        type: String,
+        minLength: 5,
+        required: true
+    },
+    date: {
+        type: Date,
+        required: true
+    },
     important: Boolean,
 });
 

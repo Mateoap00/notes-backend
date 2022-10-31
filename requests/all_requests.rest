@@ -6,7 +6,7 @@ GET http://localhost:3001/api/info
 
 ###
 
-GET http://localhost:3001/api/notes/6358a897200df8ef7c13c378
+GET http://localhost:3001/api/notes/635fec0bed571fc56118b7ef
 
 ###
 
@@ -26,6 +26,6 @@ POST http://localhost:3001/api/notes
 Content-Type: application/json
 
 {
-    "content": "Hello MongoDB!",
+    "content": "Hello is this is larger than 5?",
     "important": true
 }

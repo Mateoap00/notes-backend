@@ -52,15 +52,8 @@ app.get('/api/notes/:id', (request, response, next) => {
         }).catch(error => next(error));
 });
 
-app.post('/api/notes', (request, response) => {
+app.post('/api/notes', (request, response, next) => {
     const body = request.body;
-
-    if (body.content === undefined) {
-        console.log('400 Bad request - content missing');
-        return response.status(400).json({
-            error: "Content missing"
-        });
-    }
 
     const note = new Note({
         content: body.content,
@@ -68,10 +61,11 @@ app.post('/api/notes', (request, response) => {
         important: body.important || false
     });
 
-    note.save().then((savedNote) => {
-        console.log('savedNote: ', savedNote);
-        response.json(note);
-    });
+    note.save()
+        .then((savedNote) => {
+            console.log('savedNote: ', savedNote);
+            response.json(note);
+        }).catch(error => next(error));
 });
 
 app.delete('/api/notes/:id', (request, response, next) => {
@@ -84,12 +78,9 @@ app.delete('/api/notes/:id', (request, response, next) => {
 });
 
 app.put('/api/notes/:id', (request, response, next) => {
-    const note = {
-        content: request.body.content,
-        important: request.body.important
-    }
+    const { content, important } = request.body;
 
-    Note.findByIdAndUpdate(request.params.id, note, { new: true })
+    Note.findByIdAndUpdate(request.params.id, { content, important }, { new: true, runValidators: true, context: 'query' })
         .then((updatedNote) => {
             console.log('Updated note: ', updatedNote);
             response.json(updatedNote);
@@ -105,11 +96,15 @@ const unknownEndpointMiddleware = (request, response) => {
 
 app.use(unknownEndpointMiddleware);
 
+// ERROR HANDLER
+
 const errorHandler = (error, request, response, next) => {
     console.log(error.message);
 
     if (error.name === 'CastError') {
-        return response.status(400).send({ error: 'malformatted id' });
+        return response.status(400).send({ error: 'malformatted id' })
+    } else if (error.name === 'ValidationError') {
+        return response.status(400).send({ error: error.message })
     }
 
     next(error);
