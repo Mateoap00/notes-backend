@@ -1,0 +1,31 @@
+GET http://localhost:3001/api/notes
+
+###
+
+GET http://localhost:3001/api/info
+
+###
+
+GET http://localhost:3001/api/notes/6358a897200df8ef7c13c378
+
+###
+
+GET http://localhost:3001/api/notes/5c41c90e84d891c15dfa3431
+
+###
+
+GET http://localhost:3001/api/notes/3
+
+###
+
+DELETE http://localhost:3001/api/notes/635c2291b0da515e48a2edcb
+
+###
+
+POST http://localhost:3001/api/notes
+Content-Type: application/json
+
+{
+    "content": "Hello MongoDB!",
+    "important": true
+}

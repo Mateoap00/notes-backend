@@ -5,43 +5,20 @@ const Note = require('./models/note');
 
 const app = express();
 
-
-let notes = [
-    {
-        id: 1,
-        content: "HTML is easy",
-        date: "2022-05-30T17:30:31.098Z",
-        important: true
-    },
-    {
-        id: 2,
-        content: "Browser can execute only Javascript",
-        date: "2022-05-30T18:39:34.091Z",
-        important: false
-    },
-    {
-        id: 3,
-        content: "GET and POST are the most important methods of HTTP protocol",
-        date: "2022-05-30T19:20:14.298Z",
-        important: true
-    }
-];
-
 // MIDDLEWARE
 
-app.use(express.json());
 app.use(express.static('build'));
+app.use(express.json());
 app.use(cors());
 
 const myLoggerMiddleware = (request, response, next) => {
+    console.log('-----------------------------');
     console.log('Request method: ', request.method);
-    console.log('Request headers: ', request.headers);
     console.log('Request body: ', request.body);
+    console.log('Request params: ', request.params);
     console.log('-----------------------------');
     next();
 }
-
-
 app.use(myLoggerMiddleware);
 
 // ROUTES
@@ -59,50 +36,65 @@ app.get('/api/notes', (request, response) => {
 
 });
 
-app.get('/api/notes/:id', (request, response) => {
-    const id = Number(request.params.id);
-    console.log(id);
-    const note = notes.find(note => note.id === id);
+app.get('/api/notes/:id', (request, response, next) => {
 
-    if (note) {
-        console.log('Note found: ', note);
-        response.json(note);
-    } else {
-        response.status(404).end();
-    }
+    Note.findById(request.params.id).
+        then(note => {
 
-});
+            if (note) {
+                console.log('Note found: ', note);
+                response.json(note);
+            } else {
+                console.log('404 note not found');
+                response.status(404).end();
+            }
 
-app.delete('/api/notes/:id', (request, response) => {
-    const id = Number(request.params.id);
-    notes = notes.filter(note => note.id !== id);
-    console.log('Notes after delete: ', notes);
-    response.status(204).end();
+        }).catch(error => next(error));
 });
 
 app.post('/api/notes', (request, response) => {
     const body = request.body;
 
-    if (!body.content) {
-        console.log('400 Bad request');
+    if (body.content === undefined) {
+        console.log('400 Bad request - content missing');
         return response.status(400).json({
             error: "Content missing"
         });
     }
 
-    const note = {
-        id: generateId(),
+    const note = new Note({
         content: body.content,
         date: new Date(),
         important: body.important || false
-    };
-    console.log('New note:', note);
+    });
 
-    notes = notes.concat(note);
-    console.log('Notes after post: ', notes);
-
-    response.json(note);
+    note.save().then((savedNote) => {
+        console.log('savedNote: ', savedNote);
+        response.json(note);
+    });
 });
+
+app.delete('/api/notes/:id', (request, response, next) => {
+
+    Note.findByIdAndRemove(request.params.id)
+        .then((result) => {
+            console.log('Deleted successfully!');
+            response.status(204).end();
+        }).catch(error => next(error));
+});
+
+app.put('/api/notes/:id', (request, response, next) => {
+    const note = {
+        content: request.body.content,
+        important: request.body.important
+    }
+
+    Note.findByIdAndUpdate(request.params.id, note, { new: true })
+        .then((updatedNote) => {
+            console.log('Updated note: ', updatedNote);
+            response.json(updatedNote);
+        }).catch(error => next(error));
+})
 
 // AFTER ROUTES MIDDLEWARE
 
@@ -113,16 +105,17 @@ const unknownEndpointMiddleware = (request, response) => {
 
 app.use(unknownEndpointMiddleware);
 
-// MY FUNCTIONS
+const errorHandler = (error, request, response, next) => {
+    console.log(error.message);
 
-const generateId = () => {
-    const maxId = notes.length > 0
-        ? Math.max(...notes.map((n) => {
-            return n.id
-        }))
-        : 0;
-    return maxId + 1;
+    if (error.name === 'CastError') {
+        return response.status(400).send({ error: 'malformatted id' });
+    }
+
+    next(error);
 }
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT;
 
